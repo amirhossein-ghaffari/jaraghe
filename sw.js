@@ -1,5 +1,5 @@
 // network-first, falling back to cache so the game still opens offline after the first visit
-const CACHE = 'jaraghe-v1';
+const CACHE = 'jaraghe-v2';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
