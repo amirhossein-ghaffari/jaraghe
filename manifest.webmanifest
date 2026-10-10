@@ -1,0 +1,16 @@
+{
+  "name": "جرقه: ماجرای پیام عصبی",
+  "short_name": "جرقه",
+  "description": "بازی سه‌بعدی ماجراجویی برای علوم هشتم، فصل ۴: تنظیم عصبی",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#150a33",
+  "theme_color": "#150a33",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

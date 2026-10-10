@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#150a33">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>جرقه: ماجرای پیام عصبی</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#150a33;font-family:Vazirmatn,Tahoma,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#touch{position:fixed;inset:0}
+#hud{position:fixed;inset:0;pointer-events:none;display:none}
+#top{position:absolute;top:calc(8px + env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:flex-start;gap:10px}
+.chip{background:rgba(15,8,45,.6);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:6px 12px;font-weight:700;font-size:15px;white-space:nowrap}
+#hearts{color:#ff5a7a;font-size:19px;letter-spacing:2px;line-height:1.2}
+#obj{flex:1;text-align:center;white-space:normal;font-size:14px;line-height:1.6}
+#menuBtn{pointer-events:auto;cursor:pointer}
+#carry{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:#ffd84a;color:#2a1a00;border-radius:14px;padding:6px 14px;font-weight:900;font-size:15px;display:none;max-width:90vw;text-align:center}
+#timer{position:absolute;top:64px;right:14px;display:none;font-size:18px}
+#bar,#bossbar{position:absolute;left:50%;transform:translateX(-50%);width:min(60vw,360px);height:16px;border-radius:9px;background:rgba(0,0,0,.5);border:2px solid #fff;overflow:hidden;display:none}
+#bar{bottom:38%}#bossbar{top:104px;border-color:#ff7a9c;height:18px}
+#bar i,#bossbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4ff,#ff6);transition:width .15s}
+#bossbar i{background:linear-gradient(90deg,#ff3d6e,#b04dff)}
+#toast{position:absolute;bottom:26%;left:50%;transform:translateX(-50%);background:rgba(15,8,45,.85);border:2px solid #ffd84a;border-radius:16px;padding:10px 18px;font-weight:700;font-size:16px;line-height:1.7;text-align:center;max-width:88vw;opacity:0;transition:opacity .25s}
+#toast.on{opacity:1}
+#jump{position:absolute;right:calc(22px + env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));width:92px;height:92px;border-radius:50%;background:rgba(255,216,74,.35);border:3px solid rgba(255,255,255,.7);pointer-events:auto;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900}
+#jump:active{background:rgba(255,216,74,.7)}
+#joy{position:absolute;width:120px;height:120px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(255,255,255,.08);left:40px;bottom:40px;opacity:.5}
+#knob{position:absolute;width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.7);left:33px;top:33px}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,4,35,.72);padding:16px;z-index:5}
+.ov.on{display:flex}
+.card{background:linear-gradient(160deg,#2c1b6b,#1a0e45);border:2px solid #8f7bff;border-radius:22px;padding:20px 22px;max-width:560px;width:100%;max-height:92vh;overflow:auto;text-align:center;box-shadow:0 10px 40px #000a}
+.card h1{margin:0 0 4px;font-size:30px;font-weight:900;color:#ffd84a}
+.card p{line-height:2;font-size:16px;margin:8px 0}
+#dtext{font-size:17px;line-height:2.1;margin-bottom:14px}
+#dtext b{color:#ffd84a}
+button{font-family:inherit;font-weight:900;font-size:17px;border:0;border-radius:14px;padding:11px 22px;background:#ffd84a;color:#2a1a00;cursor:pointer}
+.lv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.lv button{background:#4b37b8;color:#fff;font-size:15px;padding:12px 8px;line-height:1.7}
+.lv button[disabled]{opacity:.4}
+.lv button small{display:block;font-weight:400;opacity:.85}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="touch"></div>
+<div id="hud">
+  <div id="top">
+    <div class="chip" id="hearts"></div>
+    <div class="chip" id="coins">⚡ 0</div>
+    <div class="chip" id="obj"></div>
+    <div class="chip" id="menuBtn">☰</div>
+  </div>
+  <div id="carry"></div>
+  <div class="chip" id="timer"></div>
+  <div id="bossbar"><i></i></div>
+  <div id="bar"><i></i></div>
+  <div id="toast"></div>
+  <div id="joy"><div id="knob"></div></div>
+  <div id="jump">پرش</div>
+</div>
+<div class="ov on" id="menu">
+  <div class="card">
+    <h1>⚡ جرقه</h1>
+    <p><b>ماجرای یک پیام عصبی</b><br>تو «جرقه» هستی؛ یک پیام عصبی کوچک. غول گیجی به دستگاه عصبی حمله کرده! از دل نورون‌ها بگذر، به مغز برس و شکستش بده.</p>
+    <p style="font-size:13px;opacity:.8">سمت چپ صفحه: حرکت · دکمه‌ی پرش (دو بار = پرش دوتایی) · کشیدن سمت راست: چرخاندن دوربین<br>روی دشمن‌ها بپر تا نابود شوند!</p>
+    <div class="lv" id="lv"></div>
+  </div>
+</div>
+<div class="ov" id="dlg"><div class="card"><div id="dtext"></div><button id="dbtn">ادامه</button></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+const $=id=>document.getElementById(id),fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const V3=THREE.Vector3, PI=Math.PI;
+const R=new THREE.WebGLRenderer({canvas:$('c'),antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(60,1,.1,300);
+const world=new THREE.Group();scene.add(world);
+scene.add(new THREE.HemisphereLight(0xffffff,0x554488,1.25));
+const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(5,12,7);scene.add(sun);
+function resize(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.fov=innerWidth<innerHeight?78:60;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+
+/* ---------- state ---------- */
+const STEP=.55;
+let labels=[],cols=[],picks=[],trigs=[],enemies=[],movers=[],fx=[],spins=[],L=null,paused=true,time=0,yaw=0,yawT=0;
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const S={lvl:0,coins:0,hearts:5,unlocked:+(store.get('jq_unlocked')||0)};
+const P={pos:new V3,vel:new V3,cp:new V3,ground:null,jumps:0,coyote:0,inv:0,carry:null,mesh:new THREE.Group()};
+const inp={x:0,y:0,jump:false};
+
+/* ---------- audio ---------- */
+let ac=null;
+function beep(f,d=.12,type='sine',v=.12,slide=0){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(f*slide,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}
+const sfx={jump:()=>beep(420,.15,'square',.06,1.8),coin:()=>beep(1200,.1,'sine',.1,1.5),good:()=>{beep(660,.12);setTimeout(()=>beep(990,.2),110)},bad:()=>beep(200,.3,'sawtooth',.12,.5),stomp:()=>beep(300,.15,'triangle',.15,.4),win:()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.25),i*130)),boom:()=>beep(90,.5,'sawtooth',.2,.4)};
+
+/* ---------- builders ---------- */
+function mat(c,e=0,o=1){return new THREE.MeshStandardMaterial({color:c,roughness:.65,emissive:c,emissiveIntensity:e,transparent:o<1,opacity:o})}
+function deco(m,x=0,y=0,z=0){m.position.set(x,y,z);world.add(m);return m}
+function addBox(x,top,z,w,d,c,o={}){const h=o.h??1;const mesh=deco(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,o.e??.08,o.op??1)),x,top-h/2,z);if(o.hide)mesh.visible=false;const col={t:'b',x,z,w,d,top,h,get bot(){return this.top-this.h},mesh};cols.push(col);if(o.move){col.move=o.move;movers.push(col)}return col}
+function addCyl(x,top,z,r,c,o={}){const h=o.h??1.4;const mesh=deco(new THREE.Mesh(new THREE.CylinderGeometry(r,r*.86,h,44),mat(c,o.e??.08)),x,top-h/2,z);const col={t:'c',x,z,r,top,h,get bot(){return this.top-this.h},mesh};cols.push(col);return col}
+function removeCol(c){const i=cols.indexOf(c);if(i>=0)cols.splice(i,1);world.remove(c.mesh);if(c.lab)world.remove(c.lab)}
+function inside(c,px,pz,m){return c.t==='b'?Math.abs(px-c.x)<=c.w/2+m&&Math.abs(pz-c.z)<=c.d/2+m:Math.hypot(px-c.x,pz-c.z)<=c.r+m}
+function label(text,x,y,z,s=1,col='#fff'){
+  const cv=document.createElement('canvas'),g=cv.getContext('2d'),F='bold 46px Vazirmatn,Tahoma,sans-serif';
+  g.font=F;const w=Math.ceil(g.measureText(text).width)+44;cv.width=w;cv.height=78;
+  g.fillStyle='rgba(12,6,40,.72)';g.beginPath();g.roundRect(2,2,w-4,74,22);g.fill();
+  g.font=F;g.direction='rtl';g.fillStyle=col;g.textAlign='center';g.textBaseline='middle';g.fillText(text,w/2,42);
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false}));
+  sp.scale.set(w/78*s,s,1);labels.push(sp);return deco(sp,x,y,z)}
+function pickup(x,y,z,mesh,fn,r=1.2){deco(mesh,x,y,z);const p={x,y,z,mesh,fn,r};picks.push(p);return p}
+function coin(x,y,z){pickup(x,y,z,new THREE.Mesh(new THREE.SphereGeometry(.26,12,10),mat(0xffe14a,.9)),()=>{S.coins++;sfx.coin();hud()},1)}
+function trigger(x,y,z,r,fn,once=true){const t={x,y,z,r,fn,once,done:false};trigs.push(t);return t}
+function checkpoint(x,y,z,r=3){const ring=deco(new THREE.Mesh(new THREE.TorusGeometry(1,.08,8,32),mat(0x66ffcc,.9)),x,y+.06,z);ring.rotation.x=PI/2;trigger(x,y,z,r,()=>{P.cp.set(x,y+.1,z);ring.material.color.set(0xffffff)})}
+function pad(x,y,z,text,c,fn,r=1.3){const m=deco(new THREE.Mesh(new THREE.CylinderGeometry(r,r,.12,28),mat(c,.15)),x,y+.06,z);label(text,x,y+1.9,z,.75);trigger(x,y,z,r,()=>{m.material.emissiveIntensity=1;sfx.good();fn()});return m}
+function enemy(x1,z1,x2,z2,y,o={}){
+  const g=new THREE.Group();const b=new THREE.Mesh(new THREE.SphereGeometry(.6,18,14),mat(0x7a2bd6,.25));g.add(b);
+  for(let i=0;i<6;i++){const s=new THREE.Mesh(new THREE.ConeGeometry(.16,.45,8),mat(0xff3d6e,.4));const a=i/6*PI*2;s.position.set(Math.cos(a)*.6,.25,Math.sin(a)*.6);s.rotation.z=-Math.cos(a)*1.1;s.rotation.x=Math.sin(a)*1.1;g.add(s)}
+  for(const sx of[-.22,.22]){const e=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),mat(0xffffff,.8));e.position.set(sx,.15,.52);g.add(e)}
+  deco(g,x1,y+.6,z1);const e={g,x1,z1,x2,z2,y,x:x1,z:z1,ph:Math.random()*6,sp:o.sp??.5,chase:!!o.chase,dead:false};enemies.push(e);return e}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function beam(a,b,c){const d=new V3().subVectors(b,a),len=d.length();const m=deco(new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,len,10),mat(c,1)),(a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);m.quaternion.setFromUnitVectors(new V3(0,1,0),d.normalize());let t=.45;fx.push(dt=>{t-=dt;m.scale.x=m.scale.z=t/.45;if(t<=0){world.remove(m);return false}})}
+function burst(x,y,z,c,n=14){for(let i=0;i<n;i++){const m=deco(new THREE.Mesh(new THREE.SphereGeometry(.14,6,5),mat(c,1)),x,y,z);const v=new V3(Math.random()-.5,Math.random()*.9+.2,Math.random()-.5).multiplyScalar(9);let t=.7;fx.push(dt=>{t-=dt;v.y-=20*dt;m.position.addScaledVector(v,dt);if(t<=0){world.remove(m);return false}})}}
+
+/* ---------- player mesh ---------- */
+{const b=new THREE.Mesh(new THREE.SphereGeometry(.5,24,18),mat(0xffd84a,.55));b.position.y=.5;P.mesh.add(b);P.body=b;
+ for(const sx of[-.18,.18]){const e=new THREE.Mesh(new THREE.SphereGeometry(.13,12,10),new THREE.MeshBasicMaterial({color:0xffffff}));e.position.set(sx,.62,.42);const p=new THREE.Mesh(new THREE.SphereGeometry(.07,8,8),new THREE.MeshBasicMaterial({color:0x111133}));p.position.set(sx,.62,.53);P.mesh.add(e,p)}
+ const a=new THREE.Mesh(new THREE.ConeGeometry(.12,.4,8),mat(0xff9d2e,.8));a.position.y=1.15;P.mesh.add(a);
+ const pl=new THREE.PointLight(0xffe08a,12,9);pl.position.y=1;P.mesh.add(pl);
+ P.orb=new THREE.Mesh(new THREE.OctahedronGeometry(.3),mat(0x66ffff,1));P.orb.position.y=1.9;P.orb.visible=false;P.mesh.add(P.orb);
+ scene.add(P.mesh)}
+const shadow=new THREE.Mesh(new THREE.CircleGeometry(.5,20),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.4,depthWrite:false}));shadow.rotation.x=-PI/2;scene.add(shadow);
+const dustGeo=new THREE.BufferGeometry();{const a=new Float32Array(900);for(let i=0;i<900;i++)a[i]=(Math.random()-.5)*70;dustGeo.setAttribute('position',new THREE.BufferAttribute(a,3))}
+const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xffffff,size:.14,transparent:true,opacity:.55}));scene.add(dust);
+
+/* ---------- HUD ---------- */
+function hud(){$('hearts').textContent='♥'.repeat(Math.max(0,S.hearts))+'♡'.repeat(Math.max(0,5-S.hearts));$('coins').textContent='⚡ '+fa(S.coins)}
+function obj(t){$('obj').textContent=t}
+let toastT=0;function toast(t,d=3200){const e=$('toast');e.innerHTML=t;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),d)}
+function bar(f){$('bar').style.display=f==null?'none':'block';if(f!=null)$('bar').firstElementChild.style.width=Math.min(100,f*100)+'%'}
+function bossbar(f){$('bossbar').style.display=f==null?'none':'block';if(f!=null)$('bossbar').firstElementChild.style.width=f*100+'%'}
+function setCarry(c){P.carry=c;P.orb.visible=!!c;$('carry').style.display=c?'block':'none';if(c)$('carry').textContent='📦 '+c.text}
+function dialog(pages,cb,btn='بزن بریم!'){paused=true;inp.x=inp.y=0;let i=0;const show=()=>{$('dtext').innerHTML=pages[i];$('dbtn').textContent=i<pages.length-1?'بعدی':btn};$('dlg').classList.add('on');$('dbtn').onclick=()=>{beep(700,.06);i++;if(i<pages.length)show();else{$('dlg').classList.remove('on');paused=false;cb&&cb()}};show()}
+function hurt(kx=0,kz=0){if(P.inv>0||paused)return;S.hearts--;P.inv=1.6;P.vel.x=kx*9;P.vel.z=kz*9;P.vel.y=7;sfx.bad();hud();if(S.hearts<=0)dialog(['💫 <b>جرقه خاموش شد!</b><br>نگران نباش؛ پیام‌های عصبی هیچ‌وقت تسلیم نمی‌شوند.'],()=>loadLevel(S.lvl),'دوباره')}
+function respawn(){P.pos.copy(P.cp);P.vel.set(0,0,0)}
+function win(pages){sfx.win();S.unlocked=Math.max(S.unlocked,S.lvl+1);store.set('jq_unlocked',S.unlocked);dialog(pages,()=>S.lvl<3?loadLevel(S.lvl+1):showMenu(),S.lvl<3?'مرحله‌ی بعد':'پایان')}
+
+/* ---------- LEVEL 1: inside the neuron ---------- */
+function L1(){
+  const D=0xc86bff,A=0x5a7dff;let got=0,analyzed=false,t=0;
+  addCyl(0,0,0,4,0x8a5cff);
+  addBox(0,0,-12.5,3,17,D);label('دندریت (دارینه)',0,3.6,-9);
+  const spark=(x,y,z)=>pickup(x,y,z,new THREE.Mesh(new THREE.OctahedronGeometry(.45),mat(0x66ffff,1)),()=>{got++;sfx.good();toast(`دندریت پیام را گرفت! ${fa(got)} از ۵`,1600);
+    if(got===5){removeCol(gate1);toast('✅ <b>دندریت‌ها</b> پیام را گرفتند!<br>حالا آن را به <b>جسم سلولی</b> ببر.');obj('روی هسته‌ی جسم سلولی بایست تا پیام تحلیل شود')}else obj(`جرقه‌های پیام را از سر دندریت‌ها جمع کن: ${fa(got)} از ۵`)});
+  spark(0,1,-6);
+  addBox(-7.5,0,-8,9,2,D);spark(-11,1,-8);
+  addBox(7.5,0,-12,9,2,D);spark(11,1,-12);
+  addBox(-3.5,0,-16,4,2,D);addBox(-8,.6,-16,2.2,2.2,D);addBox(-11.5,1.2,-16,2.2,2.2,D);spark(-11.5,2.2,-16);
+  addBox(3.5,0,-18.5,4,2,D);addBox(7,1,-18.5,2.2,2.2,D);addBox(10.2,2,-18.5,2.2,2.2,D);spark(10.2,3,-18.5);
+  const gate1=addBox(0,8,-21.4,26,.5,0xff4466,{h:8.5,op:.3,e:.6});gate1.lab=label('🔒 اول ۵ جرقه را بگیر',0,2.6,-21);
+  addCyl(0,0,-31,9,A,{h:2.4});addCyl(0,.4,-31,2.5,0x2b2bd0,{h:.6,e:.5});
+  label('جسم سلولی',0,5.5,-31,1.3);label('هسته',0,2.3,-31,.8);
+  enemy(-6,-35,6,-35,0);enemy(5,-26.5,-5,-26.5,0);
+  checkpoint(0,0,-24.5);
+  const gate2=addBox(0,8,-40.3,26,.5,0xff4466,{h:8.5,op:.3,e:.6});gate2.lab=label('🔒 اول پیام باید تحلیل شود',0,2.6,-39.6,.9);
+  addBox(0,0,-43.5,3,7,A);label('آکسون (آسه)',0,3.4,-43.5);checkpoint(0,0,-44,1.6);
+  const ax=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,66,10),mat(A,.2));ax.rotation.x=PI/2;deco(ax,0,-.5,-74);
+  for(let i=0;i<6;i++){const zc=-50.5-10*i;addBox(0,.8,zc,3.2,7,0,{h:1.6,hide:true});
+    const g=new THREE.CylinderGeometry(1,1,7,26);g.rotateX(PI/2);const m=deco(new THREE.Mesh(g,mat(0xffe9a8,.1)),0,-.4,zc);m.scale.set(2.4,1.2,1);
+    coin(0,1.8,zc);coin(0,3,zc-5);
+    if(i<5){const r=deco(new THREE.Mesh(new THREE.TorusGeometry(.6,.08,8,24),mat(0x66ffff,1)),0,-.5,zc-5)}
+    if(i===1||i===3||i===4)enemy(0,zc+2.5,0,zc-2.5,.8,{sp:.7})}
+  label('غلاف میلین',0,3.8,-50.5);label('گره‌ی رانویه',0,4.6,-55.5,.8,'#8ff');checkpoint(0,.8,-80.5,1.6);
+  addCyl(0,.8,-108,3.6,A,{h:2});label('پایانه‌ی آکسون',0,4.2,-108);checkpoint(0,.8,-107,2);
+  for(const x of[-2,0,2])deco(new THREE.Mesh(new THREE.SphereGeometry(.7,14,10),mat(A,.3)),x,.3,-111.4);
+  coin(0,3.2,-113.5);coin(0,3.9,-116);coin(0,3.2,-118.5);label('سیناپس',0,6.6,-116,1.2,'#ffd84a');
+  addCyl(0,0,-125.5,7,0xff5a6e,{h:2.4});label('سلول ماهیچه‌ای',0,4.5,-126.5);
+  trigger(0,0,-125.5,6,()=>win(['🎉 <b>پیام به سلول بعدی رسید!</b>','مسیری که خودت رفتی، همان کار نورون است:<br><b>دندریت</b> پیام را می‌گیرد ←<br><b>جسم سلولی</b> آن را تجزیه‌وتحلیل می‌کند ←<br><b>آکسون</b> پاسخ را منتقل می‌کند ←<br>در <b>سیناپس</b> به سلول بعدی می‌رسد.']));
+  obj('جرقه‌های پیام را از سر دندریت‌ها جمع کن: ۰ از ۵');
+  return{bg:0x1a1040,start:[0,.2,1],
+    intro:['<b>مرحله‌ی ۱: درون نورون</b><br>تو داخل یک <b>نورون</b> (سلول عصبی) هستی!','نورون با شاخه‌هایی به اسم <b>دندریت</b> پیام را می‌گیرد.<br>۵ جرقه‌ی پیام را از سر شاخه‌ها جمع کن.<br><small>دو بار پرش = پرش دوتایی</small>'],
+    update(dt){if(got>=5&&!analyzed){if(P.ground&&Math.hypot(P.pos.x,P.pos.z+31)<2.5){t+=dt;bar(t/2.5);if(t>=2.5){analyzed=true;bar(null);removeCol(gate2);sfx.win();toast('✅ <b>جسم سلولی</b> پیام را تجزیه‌وتحلیل کرد!<br>پاسخ از راه <b>آکسون</b> فرستاده می‌شود.',4200);obj('از روی آکسون تا پایانه بدو و از سیناپس بپر!')}}else if(t>0){t=Math.max(0,t-dt);bar(t>0?t/2.5:null)}}}}
+}
+
+/* ---------- LEVEL 2: nerve road + reflex ---------- */
+function L2(){
+  const B=0x3aa0ff,Rc=0xff6b5a,CR=0xe9e2d0;let phase=0,timer=60,timing=true;
+  addCyl(0,0,0,4,0xf2b58a,{h:2});label('پوست دست',0,3.4,1);
+  deco(new THREE.Mesh(new THREE.SphereGeometry(1.3,18,14),mat(0xff3b1f,1)),3.2,1.2,2.5);label('🔥 داغ!',3.2,3.3,2.5,.8,'#ff8a6a');
+  addBox(0,0,-9,3,10,B);addBox(0,0,-21,3,8,B);
+  addBox(0,0,-29,3,3,0x7fd0ff,{move:(t,c)=>{c.x=Math.sin(t*1.2)*3}});
+  addBox(0,0,-37,3,8,B);enemy(0,-34,0,-40,0,{sp:.7});
+  addBox(0,.5,-44,2.4,2.4,B);addBox(0,1,-48,2.4,2.4,B);addBox(0,0,-55,3,9,B);
+  for(const z of[-6,-12,-20,-36,-54])deco(new THREE.Mesh(new THREE.TorusGeometry(3.2,.14,8,36),mat(0xbfe6ff,.4)),0,1.2,z);
+  for(const[x,y]of[[-2.6,-.6],[2.6,-.6],[-2.6,3],[2.6,3]]){const m=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,56,6),mat(0x9fd0ff,.3));m.rotation.x=PI/2;deco(m,x,y,-32)}
+  for(const z of[-10,-22,-37,-48,-56])coin(0,1.3+(z===-48?1:0),z);
+  label('عصب حسی: از اندام ⬅ به مرکز عصبی',0,5.6,-7,.9,'#9fd8ff');
+  label('عصب = دسته‌ای از تارهای عصبی درون یک غلاف',0,5.6,-22,.75);
+  addCyl(0,0,-68,8.5,CR,{h:2.4});deco(new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,.06,6),mat(0x9a93a8,.1)),0,.04,-68);label('نخاع',0,5.6,-68,1.4);
+  const cmd=deco(new THREE.Mesh(new THREE.OctahedronGeometry(.6),mat(0xff5a3a,1)),0,1.3,-68);spins.push(cmd);
+  const gateBrain=addBox(0,9,-76.9,26,.5,0xff4466,{h:9.5,op:.3,e:.6});gateBrain.lab=label('راه مغز ⬆ (دور است؛ فعلاً بسته)',0,3,-76,.85);
+  trigger(0,0,-63,3.5,()=>{P.cp.set(0,.1,-63);toast('اینجا <b>نخاع</b> است: مرکز انعکاس‌ها.<br>وقت نیست از مغز بپرسیم — دستور را بردار!',4000);obj('دستور را از وسط نخاع بردار')});
+  trigger(0,0,-68,1.5,()=>{if(phase===0&&!P.carry){setCarry({text:'دستور: دست را عقب بکش!'});cmd.visible=false;yawT=-PI/2;sfx.good();toast('نخاع خودش فرمان داد!<br>از <b>عصب حرکتی</b> به ماهیچه برسانش.');obj('دستور را از عصب حرکتی به ماهیچه‌ی دست برسان')}},false);
+  addBox(13.5,0,-68,10,3,Rc);addBox(25,0,-68,8,3,Rc);
+  addBox(33,0,-68,3,3,0xffa598,{move:(t,c)=>{c.z=-68+Math.sin(t*1.3)*3}});
+  addBox(43.5,0,-68,13,3,Rc);enemy(39,-68,48,-68,0,{sp:.6});
+  for(const x of[13,25,43])coin(x,1.3,-68);
+  label('عصب حرکتی: از مرکز عصبی ⬅ به اندام',15,5,-68,.9,'#ffb3a8');
+  addCyl(56,0,-68,6,0xd9435a,{h:2.4});label('ماهیچه‌ی دست 💪',56,4.6,-68);
+  trigger(56,0,-68,5,()=>{if(phase!==0)return;if(!P.carry){toast('دستور کو؟ از وسط نخاع برش دار!');return}
+    phase=1;timing=false;$('timer').style.display='none';setCarry(null);sfx.win();
+    dialog(['💪 <b>ماهیچه منقبض شد و دست عقب رفت!</b><br>این یک <b>انعکاس</b> بود: سریع، خودکار و غیرارادی، برای حفاظت از بدن.','مرکز کنترل انعکاس‌ها <b>نخاع</b> است؛ برای همین لازم نبود تا مغز بروی.<br>پلک زدن، عطسه و سرفه هم انعکاس هستند.','ولی مغز هم باید باخبر شود!<br><b>نخاع رابط مغز و اعصاب محیطی است.</b><br>از ستون مهره‌ها بالا برو.'],()=>{
+      P.pos.set(0,.2,-71);P.vel.set(0,0,0);P.cp.set(0,.1,-71);yaw=yawT=0;removeCol(gateBrain);setCarry({text:'خبر: دست سوخت!'});obj('از پله‌های نخاع بالا برو و خبر را به مغز برسان')})},false);
+  for(let k=0;k<10;k++){const o={h:1};if(k===3||k===6)o.move=(t,c)=>{c.x=Math.sin(t*1.1+k)*3};addBox([0,2,-2,0,0,2,0,-2,0,0][k],1.2*(k+1),-80-4.2*k,3,3,CR,o);if(k%2)coin([0,2,-2,0,0,2,0,-2,0,0][k],1.2*(k+1)+1.3,-80-4.2*k)}
+  checkpoint(0,6,-96.8,1.4);
+  addCyl(0,12,-128,8,0xff9ecf,{h:3});label('مغز 🧠',0,17,-128,1.5);
+  trigger(0,12,-128,6.5,()=>{setCarry(null);win(['🧠 <b>مغز پیام را درک کرد: «آخ، داغ بود!»</b>','<b>دستگاه عصبی مرکزی</b> = مغز + نخاع (مرکز فرماندهی)<br><b>دستگاه عصبی محیطی</b> = عصب‌هایی که همه‌ی بدن را به مرکز وصل می‌کنند.','<b>عصب حسی</b>: پیام را از اندام به مرکز می‌آورد.<br><b>عصب حرکتی</b>: پاسخ را از مرکز به اندام می‌برد.<br>خودت هر دو راه را دویدی! 😎'])});
+  obj('از عصب حسی خودت را به نخاع برسان — زود!');
+  return{bg:0x0d2b3a,start:[0,.2,1],
+    intro:['<b>مرحله‌ی ۲: جاده‌ی عصب</b><br>آخ! دست به کتری داغ خورد! 🔥','تو پیامِ «داغه!» هستی.<br>قبل از اینکه دست بسوزد، از <b>عصب حسی</b> خودت را به <b>نخاع</b> برسان!'],
+    update(dt){if(timing){timer-=dt;const e=$('timer');e.style.display='block';e.textContent='⏱ '+fa(Math.ceil(timer));
+      if(timer<=0){timer=60;toast('⏰ دیر شد و دست سوخت! دوباره تلاش کن.');sfx.bad();setCarry(null);cmd.visible=true;yawT=0;P.cp.set(0,.2,1);respawn()}}}}
+}
+
+/* ---------- LEVEL 3: brain city ---------- */
+const NAMES={mokh:'مخ',mokhche:'مخچه',basal:'بصل‌النخاع',nokha:'نخاع'};
+function L3(){
+  const a={mokh:0,mokhche:0,basal:0};let phase=0,done=0,prev=null,portal=null;
+  const jobs=shuffle([
+    {text:'حل مسئله‌ی ریاضی',target:'mokh',why:'فکر کردن و حل مسئله کار <b>مخ</b> است.'},
+    {text:'تصمیم برای برداشتن مداد',target:'mokh',why:'قشر <b>مخ</b> مرکز اعمال ارادی است.'},
+    {text:'راه رفتن روی لبه‌ی جدول',target:'mokhche',why:'<b>مخچه</b> تعادل بدن را حفظ می‌کند.'},
+    {text:'تنظیم ضربان قلب',target:'basal',why:'<b>بصل‌النخاع</b> مرکز تنفس، ضربان قلب و فشار خون است.'},
+    {text:'تنظیم تنفس هنگام خواب',target:'basal',why:'تنفس را <b>بصل‌النخاع</b> (گره‌ی حیات) کنترل می‌کند.'},
+    {text:'عقب کشیدن دست از جسم داغ',target:'nokha',why:'مرکز انعکاس‌ها <b>نخاع</b> است.'}]);
+  const prog=()=>obj(`مراکز مغز را کشف کن (روی دایره‌ها برو) — مخ ${fa(a.mokh)}/۴ · مخچه ${fa(a.mokhche)}/۲ · بصل‌النخاع ${fa(a.basal)}/۳`);
+  const act=(k,n,msg)=>()=>{a[k]++;if(a[k]===n)toast(msg,5000);prog();
+    if(a.mokh===4&&a.mokhche===2&&a.basal===3&&phase===0){phase=1;setTimeout(()=>dialog(['🚨 <b>آژیر!</b><br>غول گیجی پیام‌ها را قاطی کرده و وسط ساقه‌ی مغز ریخته!','هر بسته را از <b>ساقه‌ی مغز</b> بردار و به مرکزِ درستش برسان:<br>مخ، مخچه، بصل‌النخاع یا نخاع.<br>مراقب سربازهای گیجی باش!'],()=>{enemy(-4,3,4,3,0);enemy(4,-3,-4,-3,0);enemy(-8,-24,8,-24,2);spawn()}),900)}};
+  addCyl(0,0,0,7,0xb9a6ff,{h:2.4});label('ساقه‌ی مغز',0,5,0,1.1);label('مخ و مخچه را به نخاع وصل می‌کند',0,3.9,0,.6);
+  // cerebrum
+  for(let k=0;k<5;k++)addBox(0,.4*(k+1),-8-2*k,4,2,0xffb3d9,{h:.4*(k+1)+1});
+  addCyl(0,2,-30,13,0xff8fc7,{h:4});label('مخ',0,9,-30,1.8);
+  deco(new THREE.Mesh(new THREE.BoxGeometry(.3,.06,25),mat(0xb8497f)),0,2.03,-30);
+  label('نیمکره‌ی چپ',-7,5,-31,.7);label('نیمکره‌ی راست',7,5,-31,.7);
+  const m1='<b>مخ</b> اطلاعات اندام‌های حسی را تجزیه‌وتحلیل می‌کند.<br>فکر کردن، حل مسئله و اعمال ارادی هم با اوست.';
+  pad(-7,2,-25,'👁 چشم',0xff5fa8,act('mokh',4,m1));pad(7,2,-25,'👂 گوش',0xff5fa8,act('mokh',4,m1));pad(-7,2,-37,'✋ پوست',0xff5fa8,act('mokh',4,m1));pad(7,2,-37,'👅 زبان',0xff5fa8,act('mokh',4,m1));
+  // cerebellum
+  const C=0xffb347;addBox(10,0,0,6,.9,C);addBox(16,0,0,5,.9,0xffd08a,{move:(t,c)=>{c.z=Math.sin(t*.9)*1.6}});addBox(21.25,0,0,4.5,.9,C);
+  addCyl(30,0,0,7,C,{h:2.4});label('مخچه',30,5.4,0,1.5);label('پل تعادل!',15,2.6,0,.7);
+  const m2='<b>مخچه</b> با اطلاعات چشم و گوش، <b>تعادل</b> بدن را حفظ می‌کند<br>و انقباض ماهیچه‌ها را تنظیم می‌کند.';
+  pad(27.5,0,-3.5,'👁 چشم',0xff8a1f,act('mokhche',2,m2));pad(27.5,0,3.5,'👂 گوش',0xff8a1f,act('mokhche',2,m2));
+  // medulla
+  const G=0x4fd1a5;for(let k=0;k<8;k++)addBox(-7.75-1.5*k,-.5*(k+1),0,1.5,4,0x9be8cf,{h:1});
+  addCyl(-25,-4,0,6.5,G,{h:2.4});label('بصل‌النخاع (گره‌ی حیات)',-25,1,0,1.1);
+  const m3='<b>بصل‌النخاع</b> (گره‌ی حیات) مرکز کنترل<br><b>تنفس، ضربان قلب و فشار خون</b> است.';
+  pad(-22,-4,-3.3,'🫁 تنفس',0x1f9e78,act('basal',3,m3));pad(-22,-4,3.3,'❤ ضربان قلب',0x1f9e78,act('basal',3,m3));pad(-28,-4,-3,'🩸 فشار خون',0x1f9e78,act('basal',3,m3));
+  // spinal cord
+  addBox(0,0,12,3,10,0xe9e2d0);addCyl(0,0,21.5,5,0xe9e2d0,{h:2.4});label('نخاع',0,4.4,21.5,1.3);
+  // delivery pads
+  const dl=[['mokh',0,2,-31],['mokhche',32.5,0,0],['basal',-28,-4,3],['nokha',0,0,22.5]];
+  for(const[id,x,y,z]of dl){const r=deco(new THREE.Mesh(new THREE.TorusGeometry(1.5,.14,8,30),mat(0xffd84a,.9)),x,y+.1,z);r.rotation.x=PI/2;label('📦 تحویل: '+NAMES[id],x,y+3,z,.65,'#ffd84a')}
+  function spawn(){const j=jobs[done];obj(`بسته‌ی ${fa(done+1)} از ۶ را از ساقه‌ی مغز بردار`);
+    pickup(0,1.2,0,new THREE.Mesh(new THREE.BoxGeometry(.8,.8,.8),mat(0xffd84a,.7)),()=>{setCarry(j);sfx.good();obj('این بسته کارِ کدام مرکز است؟ ببرش روی حلقه‌ی «تحویل» همان‌جا')})}
+  return{bg:0x2a0f3f,start:[0,.2,4],
+    intro:['<b>مرحله‌ی ۳: شهر مغز</b><br>به مغز خوش آمدی! اینجا سه محله دارد:<br><b>مخ</b>، <b>مخچه</b> و <b>ساقه‌ی مغز</b> (که بصل‌النخاع بخشی از آن است).','همه‌جا را بگرد و روی دایره‌های رنگی برو تا بفهمی هر مرکز چه‌کاره است.<br><small>با کشیدن سمت راست صفحه، دوربین را بچرخان.</small>'],
+    update(dt){let cur=null;
+      for(const[id,x,y,z]of dl){if(Math.hypot(P.pos.x-x,P.pos.z-z)<1.6&&Math.abs(P.pos.y-y)<1.5){cur=id;if(!P.carry||prev===id)break;
+        if(id===P.carry.target){const w=P.carry.why;setCarry(null);done++;sfx.win();burst(x,y+1,z,0xffd84a);toast('✅ درست! '+w,4200);
+          if(done<6)spawn();else{obj('دروازه‌ی نبرد وسط ساقه‌ی مغز باز شد!');portal=deco(new THREE.Mesh(new THREE.TorusGeometry(1.4,.25,10,30),mat(0xb04dff,1)),0,1.8,0);spins.push(portal);label('⚔ دروازه‌ی نبرد',0,4,0,.8,'#e0b3ff')}}
+        else{toast(`❌ نه! «${P.carry.text}» کارِ ${NAMES[id]} نیست. دوباره فکر کن.`);hurt(0,0)}break}}
+      prev=cur;
+      if(portal&&Math.hypot(P.pos.x,P.pos.z)<1.4&&P.pos.y<2){portal=null;win(['🗺 <b>مغز را مثل کف دستت شناختی!</b>','<b>مخ</b>: تحلیل حس‌ها، فکر کردن، اعمال ارادی<br><b>مخچه</b>: تعادل<br><b>بصل‌النخاع</b>: تنفس، ضربان قلب، فشار خون<br><b>نخاع</b>: انعکاس‌ها و رابط مغز با بدن','حالا وقت نبرد با <b>غول گیجی</b> است! ⚔'])}}}
+}
+
+/* ---------- LEVEL 4: boss ---------- */
+function L4(){
+  addCyl(0,0,0,17,0x2a1f4d,{h:3});
+  const CRY=[{id:'mokh',x:0,z:-12,c:0xff8fc7},{id:'mokhche',x:12,z:0,c:0xffb347},{id:'basal',x:-12,z:0,c:0x4fd1a5},{id:'nokha',x:0,z:12,c:0xe9e2d0}];
+  for(const k of CRY){deco(new THREE.Mesh(new THREE.CylinderGeometry(2,2,.1,28),mat(k.c,.3)),k.x,.06,k.z);k.m=deco(new THREE.Mesh(new THREE.OctahedronGeometry(.9),mat(k.c,.8)),k.x,2.6,k.z);spins.push(k.m);label(NAMES[k.id],k.x,4.4,k.z,1,'#fff')}
+  const boss=new THREE.Group();const bm=mat(0x4a1a8a,.25);boss.add(new THREE.Mesh(new THREE.SphereGeometry(2.6,28,20),bm));
+  for(const sx of[-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(.5,14,10),mat(0xff2a2a,1));e.position.set(sx*.95,.6,2.25);boss.add(e);const h=new THREE.Mesh(new THREE.ConeGeometry(.5,1.6,10),mat(0xff3d6e,.4));h.position.set(sx*1.5,2.5,0);h.rotation.z=-sx*.5;boss.add(h)}
+  const mo=new THREE.Mesh(new THREE.TorusGeometry(.8,.16,8,20,PI),mat(0x110022));mo.position.set(0,-.9,2.3);boss.add(mo);
+  deco(boss,0,5,0);label('غول گیجی',0,9,0,1.1,'#ff9ab5');
+  const pool=()=>shuffle([
+    {text:'فکر کردن به جواب معما',target:'mokh'},{text:'تصمیم برای برداشتن مداد',target:'mokh'},{text:'تحلیل پیام چشم و گوش',target:'mokh'},{text:'حل مسئله',target:'mokh'},
+    {text:'حفظ تعادل روی یک پا',target:'mokhche'},{text:'نیفتادن از دوچرخه',target:'mokhche'},{text:'تنظیم ماهیچه‌ها برای تعادل',target:'mokhche'},
+    {text:'تنفس',target:'basal'},{text:'ضربان قلب',target:'basal'},{text:'فشار خون',target:'basal'},
+    {text:'انعکاس: کشیدن دست از جسم داغ',target:'nokha'},{text:'رابط مغز و اعصاب محیطی',target:'nokha'}]);
+  let hp=8,msgs=pool(),orb=null,atk=3.5,kind=0,wave=-1,balls=[],cool=0,flash=0,minions=false,dead=false,slot=0;
+  const ring=deco(new THREE.Mesh(new THREE.TorusGeometry(1,.035,8,48),mat(0xff3d6e,1)),0,.25,0);ring.rotation.x=PI/2;ring.visible=false;
+  function spawnOrb(){if(dead)return;if(!msgs.length)msgs=pool();const m=msgs.pop();slot=(slot+1+(Math.random()*3|0))%4;const an=PI/4+slot*PI/2+(Math.random()-.5)*.6,r=6+Math.random()*4;
+    const x=Math.cos(an)*r,z=Math.sin(an)*r;const mesh=deco(new THREE.Mesh(new THREE.SphereGeometry(.5,14,10),mat(0x66ffff,1)),x,1.1,z);const lab=label('📦 '+m.text,x,2.5,z,.7,'#8ff');orb={m,x,z,mesh,lab};obj(`پیام «${m.text}» را بردار و به بلورِ مرکزِ درستش برسان!`)}
+  bossbar(1);spawnOrb();
+  return{bg:0x12061f,start:[0,.2,8],camD:13,camH:9,fallHurt:true,
+    intro:['<b>مرحله‌ی آخر: نبرد با غول گیجی</b> 👾<br>او پیام‌ها را قاطی می‌کند تا بدن نداند هر کار با کدام مرکز است!','هر <b>پیام</b> را بردار و به بلورِ مرکزِ درستش برسان تا به غول شلیک کند.<br>بلورِ اشتباه = یک قلب کمتر!','از <b>گلوله‌های آتش</b> فرار کن و از روی <b>موجِ قرمز</b> بپر!'],
+    update(dt){
+      boss.position.y=5+Math.sin(time*2)*.5;boss.rotation.y=Math.atan2(P.pos.x,P.pos.z);
+      if(flash>0){flash-=dt;bm.emissive.set(flash>0?0xffffff:0x4a1a8a);bm.emissiveIntensity=flash>0?1:.25}
+      if(dead)return;if(cool>0)cool-=dt;
+      if(orb&&!P.carry&&Math.hypot(P.pos.x-orb.x,P.pos.z-orb.z)<1.4&&P.pos.y<2){setCarry(orb.m);world.remove(orb.mesh,orb.lab);orb=null;sfx.good();obj(`«${P.carry.text}» کار کدام مرکز است؟ ببرش پیش بلورش!`)}
+      if(P.carry&&cool<=0)for(const k of CRY)if(Math.hypot(P.pos.x-k.x,P.pos.z-k.z)<2.1){const m=P.carry;setCarry(null);cool=1;
+        if(k.id===m.target){hp--;flash=.35;sfx.boom();beam(new V3(k.x,2.6,k.z),boss.position.clone(),k.c);burst(0,boss.position.y,0,0xb04dff,10);bossbar(hp/8);toast(`✅ «${m.text}» ← <b>${NAMES[k.id]}</b>`,2200);
+          if(hp<=0){dead=true;ring.visible=false;balls.forEach(b=>world.remove(b.m));balls=[];enemies.forEach(e=>{e.dead=true;world.remove(e.g)});bossbar(null);let t=1.6;fx.push(d=>{t-=d;boss.scale.setScalar(Math.max(.01,t/1.6));boss.rotation.z+=d*9;if(t<=0){world.remove(boss);burst(0,5,0,0xffd84a,30);sfx.win();
+            setTimeout(()=>win(['🏆 <b>غول گیجی شکست خورد!</b><br>دستگاه عصبی دوباره مرتب کار می‌کند.',`⚡ انرژی جمع‌شده: <b>${fa(S.coins)}</b><br><br>تو حالا می‌دانی:<br>نورون چطور پیام می‌برد، عصب حسی و حرکتی چه فرقی دارند،<br>انعکاس چیست و هر بخش مغز چه‌کاره است.`,'<b>آفرین جرقه! فصل تنظیم عصبی را بازی کردی و یاد گرفتی.</b> 🎓']),900);return false}})}
+          else{if(hp<=4&&!minions){minions=true;enemy(-9,-9,0,0,0,{chase:true});enemy(9,9,0,0,0,{chase:true});toast('👾 غول عصبانی شد و سرباز فرستاد! رویشان بپر.')}setTimeout(spawnOrb,900)}}
+        else{toast(`❌ نه! «${m.text}» کارِ <b>${NAMES[m.target]}</b> است، نه ${NAMES[k.id]}.`,3500);hurt(-k.x/12,-k.z/12);setTimeout(spawnOrb,900)}
+        break}
+      atk-=dt;if(atk<=0){atk=1.8+hp*.3;kind^=1;
+        if(kind){const from=boss.position.clone(),d=new V3(P.pos.x,P.pos.y+.5,P.pos.z).sub(from).normalize();balls.push({m:deco(new THREE.Mesh(new THREE.SphereGeometry(.55,12,10),mat(0xff5a1f,1)),from.x,from.y,from.z),d,t:5});beep(500,.25,'sawtooth',.08,.4)}
+        else{wave=0;ring.visible=true;sfx.boom()}}
+      for(const b of balls){b.t-=dt;b.m.position.addScaledVector(b.d,11*dt);const p=b.m.position;if(p.distanceTo(new V3(P.pos.x,P.pos.y+.5,P.pos.z))<1){hurt(b.d.x,b.d.z);b.t=0}if(p.y<.3){burst(p.x,.3,p.z,0xff5a1f,6);b.t=0}if(b.t<=0)world.remove(b.m)}
+      balls=balls.filter(b=>b.t>0);
+      if(wave>=0){wave+=8*dt;ring.scale.set(wave,wave,3);if(Math.abs(Math.hypot(P.pos.x,P.pos.z)-wave)<.55&&P.pos.y<.7){const n=Math.hypot(P.pos.x,P.pos.z)||1;hurt(P.pos.x/n,P.pos.z/n)}if(wave>17.5){wave=-1;ring.visible=false}}
+    }}
+}
+const LEVELS=[L1,L2,L3,L4],LNAMES=[['۱. درون نورون','دندریت، آکسون، سیناپس'],['۲. جاده‌ی عصب','عصب حسی و حرکتی، انعکاس'],['۳. شهر مغز','مخ، مخچه، بصل‌النخاع'],['۴. نبرد با غول گیجی','همه‌چیز با هم!']];
+
+/* ---------- level flow ---------- */
+function loadLevel(i){
+  world.clear();labels=[];cols=[];picks=[];trigs=[];enemies=[];movers=[];fx=[];spins=[];
+  S.lvl=i;S.hearts=5;setCarry(null);bar(null);bossbar(null);$('timer').style.display='none';
+  L=LEVELS[i]();scene.background=new THREE.Color(L.bg);scene.fog=new THREE.Fog(L.bg,35,120);
+  P.pos.set(...L.start);P.cp.copy(P.pos);P.vel.set(0,0,0);P.inv=0;yaw=yawT=0;hud();
+  $('menu').classList.remove('on');$('hud').style.display='block';camSnap();
+  dialog(L.intro);
+}
+function showMenu(){paused=true;$('hud').style.display='none';$('dlg').classList.remove('on');const lv=$('lv');lv.innerHTML='';
+  LNAMES.forEach(([n,s],i)=>{const b=document.createElement('button');b.innerHTML=(i>S.unlocked?'🔒 ':'')+n+`<small>${s}</small>`;b.disabled=i>S.unlocked;
+    b.onclick=async()=>{if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+      try{if(matchMedia('(pointer:coarse)').matches){await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape')}}catch(e){}
+      try{await Promise.race([document.fonts.load('bold 46px Vazirmatn'),new Promise(r=>setTimeout(r,1500))])}catch(e){}
+      S.coins=0;loadLevel(i)};lv.appendChild(b)});
+  $('menu').classList.add('on')}
+$('menuBtn').onclick=showMenu;
+
+/* ---------- input ---------- */
+const keys={};
+addEventListener('keydown',e=>{if(e.code==='Space'&&!keys.Space)inp.jump=true;keys[e.code]=true});
+addEventListener('keyup',e=>{keys[e.code]=false});
+let joyId=null,camId=null,jx=0,jy=0,camX=0,tx=0,ty=0;
+const T=$('touch'),joy=$('joy'),knob=$('knob');
+T.addEventListener('pointerdown',e=>{if(e.clientX<innerWidth/2&&joyId===null){joyId=e.pointerId;jx=e.clientX;jy=e.clientY;joy.style.left=jx-60+'px';joy.style.top=jy-60+'px';joy.style.bottom='auto';joy.style.opacity=1}else if(camId===null){camId=e.pointerId;camX=e.clientX}});
+T.addEventListener('pointermove',e=>{if(e.pointerId===joyId){let dx=e.clientX-jx,dy=e.clientY-jy;const l=Math.hypot(dx,dy),m=50;if(l>m){dx*=m/l;dy*=m/l}tx=dx/m;ty=dy/m;knob.style.left=33+dx+'px';knob.style.top=33+dy+'px'}else if(e.pointerId===camId){yawT-=(e.clientX-camX)*.006;camX=e.clientX}});
+const up=e=>{if(e.pointerId===joyId){joyId=null;tx=ty=0;knob.style.left=knob.style.top='33px';joy.style.opacity=.5}if(e.pointerId===camId)camId=null};
+T.addEventListener('pointerup',up);T.addEventListener('pointercancel',up);
+$('jump').addEventListener('pointerdown',e=>{e.preventDefault();inp.jump=true});
+addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ---------- simulation ---------- */
+function blocked(nx,nz){for(const c of cols)if(c.top>P.pos.y+STEP&&c.bot<P.pos.y+1.2&&inside(c,nx,nz,.3)&&!inside(c,P.pos.x,P.pos.z,.3))return true;return false}
+function stepPlayer(dt){
+  let ix=tx+(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0),iy=ty+(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
+  const l=Math.hypot(ix,iy);if(l>1){ix/=l;iy/=l}
+  const s=Math.sin(yaw),c=Math.cos(yaw),mx=c*ix+s*iy,mz=-s*ix+c*iy,k=Math.min(1,dt*(P.ground?12:5));
+  P.vel.x+=(mx*7.2-P.vel.x)*k;P.vel.z+=(mz*7.2-P.vel.z)*k;
+  let nx=P.pos.x+P.vel.x*dt;if(blocked(nx,P.pos.z))P.vel.x=0;else P.pos.x=nx;
+  let nz=P.pos.z+P.vel.z*dt;if(blocked(P.pos.x,nz))P.vel.z=0;else P.pos.z=nz;
+  if(inp.jump){inp.jump=false;if(P.ground||P.coyote>0){P.vel.y=11.5;P.jumps=1;P.coyote=0;P.ground=null;sfx.jump()}else if(P.jumps<2){P.vel.y=10.5;P.jumps=2;sfx.jump();burst(P.pos.x,P.pos.y,P.pos.z,0xffffff,5)}}
+  P.vel.y=Math.max(-32,P.vel.y-30*dt);let ny=P.pos.y+P.vel.y*dt,g=null,gt=-1e9;
+  for(const q of cols)if(q.top<=P.pos.y+STEP&&q.top>gt&&inside(q,P.pos.x,P.pos.z,.25)){gt=q.top;g=q}
+  if(P.vel.y<=0&&g&&ny<=gt){ny=gt;P.vel.y=0;P.ground=g;P.jumps=0;P.coyote=.12}else{P.ground=null;P.coyote-=dt}
+  P.pos.y=ny;
+  if(P.pos.y<(L.killY??-18)){respawn();if(L.fallHurt){P.inv=0;hurt()}else sfx.bad()}
+  if(P.inv>0)P.inv-=dt;
+  // visuals
+  P.mesh.position.copy(P.pos);P.mesh.visible=P.inv<=0||Math.floor(time*14)%2===0;
+  if(Math.hypot(P.vel.x,P.vel.z)>.5){let d=Math.atan2(P.vel.x,P.vel.z)-P.mesh.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));P.mesh.rotation.y+=d*Math.min(1,dt*12)}
+  const sq=P.ground?1+Math.sin(time*14)*.04*Math.min(1,Math.hypot(P.vel.x,P.vel.z)/4):1+Math.min(.25,Math.abs(P.vel.y)*.02);P.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq));P.orb.rotation.y+=dt*3;
+  let st=-1e9;for(const q of cols)if(q.top<=P.pos.y+.1&&q.top>st&&inside(q,P.pos.x,P.pos.z,.1))st=q.top;
+  shadow.visible=st>-1e8;if(shadow.visible){shadow.position.set(P.pos.x,st+.03,P.pos.z);const sc=Math.max(.4,1-(P.pos.y-st)*.12);shadow.scale.setScalar(sc)}
+}
+function update(dt){
+  time+=dt;
+  for(const c of movers){const ox=c.x,oz=c.z,ot=c.top;c.move(time,c);c.mesh.position.set(c.x,c.top-c.h/2,c.z);if(P.ground===c){P.pos.x+=c.x-ox;P.pos.z+=c.z-oz;P.pos.y+=c.top-ot}}
+  stepPlayer(dt);
+  for(const s of spins)s.rotation.y+=dt*2;
+  for(const s of labels)s.visible=s.position.distanceToSquared(P.pos)<1500;
+  for(let i=picks.length-1;i>=0;i--){const p=picks[i];p.mesh.rotation.y+=dt*3;p.mesh.position.y=p.y+Math.sin(time*3+p.x+p.z)*.15;
+    if(Math.hypot(P.pos.x-p.x,P.pos.y+.6-p.y,P.pos.z-p.z)<p.r){world.remove(p.mesh);picks.splice(i,1);p.fn()}}
+  for(const t of trigs){if(t.done)continue;if(Math.hypot(P.pos.x-t.x,P.pos.z-t.z)<t.r&&Math.abs(P.pos.y-t.y)<1.2){if(t.once)t.done=true;t.fn();if(paused)return}}
+  for(const e of enemies){if(e.dead)continue;
+    if(e.chase){const dx=P.pos.x-e.x,dz=P.pos.z-e.z,d=Math.hypot(dx,dz)||1;e.x+=dx/d*2.6*dt;e.z+=dz/d*2.6*dt}
+    else{const u=(Math.sin(time*e.sp*2+e.ph)+1)/2;e.x=e.x1+(e.x2-e.x1)*u;e.z=e.z1+(e.z2-e.z1)*u}
+    e.g.position.set(e.x,e.y+.6+Math.abs(Math.sin(time*6+e.ph))*.15,e.z);e.g.rotation.y+=dt*2;
+    const dx=P.pos.x-e.x,dz=P.pos.z-e.z,d=Math.hypot(dx,dz),dy=P.pos.y-e.y;
+    if(d<1.05&&dy>-1&&dy<1.4){if(P.vel.y<-1&&dy>.45){e.dead=true;world.remove(e.g);P.vel.y=9.5;P.jumps=1;sfx.stomp();burst(e.x,e.y+.6,e.z,0x7a2bd6);S.coins+=3;hud()}else hurt(dx/(d||1),dz/(d||1))}}
+  fx=fx.filter(f=>f(dt)!==false);
+  if(!paused&&L.update)L.update(dt);
+}
+function camPos(o){const D=(L?.camD??10)*(innerWidth<innerHeight?1.25:1),H=L?.camH??6;o.set(P.pos.x+Math.sin(yaw)*D,P.pos.y+H,P.pos.z+Math.cos(yaw)*D);return o}
+const ct=new V3,cl=new V3;
+function camSnap(){camPos(cam.position);cl.set(P.pos.x,P.pos.y+1.5,P.pos.z);cam.lookAt(cl)}
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(.033,(now-last)/1000);last=now;
+  if(L){if(!paused)update(dt);
+    let d=yawT-yaw;yaw+=d*Math.min(1,dt*6);
+    cam.position.lerp(camPos(ct),Math.min(1,dt*6));cl.lerp(ct.set(P.pos.x,P.pos.y+1.5,P.pos.z),Math.min(1,dt*10));cam.lookAt(cl);
+    dust.position.set(Math.round(P.pos.x/35)*35,P.pos.y,Math.round(P.pos.z/35)*35);dust.rotation.y+=dt*.02}
+  R.render(scene,cam);requestAnimationFrame(frame)}
+showMenu();requestAnimationFrame(frame);
+window.G={P,S,loadLevel,get L(){return L},step(n=1){for(let i=0;i<n&&!paused;i++)update(1/60)}};
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
